@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "DecProc.h"
+#include "NetworkInit.h"
 
 HINSTANCE gMainInstance = NULL;
 HWND gMainWindowHandle = NULL;
@@ -53,6 +54,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	ShowWindow(hWnd, nCmdShow);	// 생성된 윈도우의 화면출력
 
 	UpdateWindow(hWnd);			// O/S에 WM_PAINT 메시지 전송
+
+	InitializeNetworkData();
 
 	while (GetMessage(&Message, 0, 0, 0)) // WinProc()에서 PostQuitMessage() 호출할 때까지 처리.
 	{

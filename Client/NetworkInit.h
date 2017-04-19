@@ -14,3 +14,6 @@ struct SOCKETINFO
 };
 
 void ProcessSocketMessage(HWND, UINT, WPARAM, LPARAM);
+void InitializeNetworkData(void);
+
+extern SOCKETINFO gSockInfo;
