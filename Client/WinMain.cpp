@@ -1,9 +1,10 @@
 #include "stdafx.h"
 #include "DecProc.h"
 
-HINSTANCE g_hlnst;
-LPCTSTR lpszClassName = "WndClass_CoramDeo";
-LPCTSTR lpszClassTitle = "GameServerProgramming TermProj (feat.CoramDeo)";
+HINSTANCE gMainInstance = NULL;
+HWND gMainWindowHandle = NULL;
+LPCTSTR lpszClassName = L"WndClass_CoramDeo";
+LPCTSTR lpszClassTitle = L"GameServerProgramming TermProj (feat.YKoramDeo)";
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
@@ -12,7 +13,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 {
 	HWND	hWnd;
 	MSG	 Message;
-	g_hlnst = hInstance;	// 현재 Instance의 값을 글로벌 변수에 저장하여 Procedure에서도 사용할 수 있도록 저장함.
 	WNDCLASS WndClass;		// Window 구조체 정의
 
 	WndClass.cbClsExtra = 0;	// O/S사용 여분 메모리(class)
@@ -46,6 +46,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 		hInstance,				// 응용프로그램 ID
 		NULL					// 생성된 윈도우 정보
 	);
+
+	gMainWindowHandle = hWnd;
+	gMainInstance = hInstance;	// 현재 Instance의 값을 글로벌 변수에 저장하여 Procedure에서도 사용할 수 있도록 저장함.
 
 	ShowWindow(hWnd, nCmdShow);	// 생성된 윈도우의 화면출력
 
