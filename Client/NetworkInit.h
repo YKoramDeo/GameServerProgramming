@@ -15,5 +15,9 @@ struct SOCKETINFO
 
 void ProcessSocketMessage(HWND, UINT, WPARAM, LPARAM);
 void InitializeNetworkData(void);
+void DisplayText(char *, ...);
+void DisplayErrCode(char*);
+void DisplayErrCodeAndQuit(char*);
+void ReadPacket(SOCKET);
 
 extern SOCKETINFO gSockInfo;

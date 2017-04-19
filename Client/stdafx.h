@@ -2,9 +2,13 @@
 #define WIN32_LEAN_AND_MEAN
 // stdafx.cpp : 자주 사용하지만 수정이 적은 표준 시스템 포함 밑 프로젝트 관련 포함 파일입니다.
 
+#pragma comment (lib, "ws2_32.lib")
+
 #include <windows.h>
 //#include <winsock.h>
 #include <WinSock2.h>
+#include <iostream>
+#include <mutex>
 
 #define WINDOW_POSITION_X	0
 #define WINDOW_POSITION_Y	0
@@ -20,3 +24,5 @@
 
 extern HWND gMainWindowHandle;
 extern HINSTANCE gMainInstance;
+extern HWND gEditHandle;
+extern std::mutex gMutex;

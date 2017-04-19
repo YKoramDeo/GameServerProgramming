@@ -2,8 +2,10 @@
 #include "DecProc.h"
 #include "NetworkInit.h"
 
+std::mutex gMutex;
 HINSTANCE gMainInstance = NULL;
 HWND gMainWindowHandle = NULL;
+HWND gEditHandle = NULL;	// 편집 컨트롤		
 LPCTSTR lpszClassName = L"WndClass_CoramDeo";
 LPCTSTR lpszClassTitle = L"GameServerProgramming TermProj (feat.YKoramDeo)";
 

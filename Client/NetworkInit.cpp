@@ -28,3 +28,49 @@ void InitializeNetworkData(void)
 
 	return;
 }
+
+void ReadPacket(SOCKET sock)
+{
+	return;
+}
+
+void DisplayText(char *fmt, ...)
+{
+	va_list arg;
+	va_start(arg, fmt);
+
+	char cBuf[BUF_SIZE + 256];
+	vsprintf(cBuf, fmt, arg);
+
+	gMutex.lock();
+	int nLength = GetWindowTextLength(gEditHandle);
+	SendMessage(gEditHandle, EM_SETSEL, nLength, nLength);
+	SendMessage(gEditHandle, EM_REPLACESEL, FALSE, (LPARAM)cBuf);
+	gMutex.unlock();
+
+	va_end(arg);
+	return;
+}
+
+void DisplayErrCodeAndQuit(char* msg)
+{
+	LPVOID lpMsgBuf;
+	FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL, 
+		WSAGetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), 
+		(LPTSTR)&lpMsgBuf, 0, NULL);
+	MessageBox(NULL, (LPCTSTR)lpMsgBuf,reinterpret_cast<LPCWSTR>(msg), MB_ICONERROR);
+	LocalFree(lpMsgBuf);
+	exit(1);
+	return;
+}
+
+void DisplayErrCode(char* msg)
+{
+	LPVOID lpMsgBuf;
+	FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL,
+		WSAGetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+		(LPTSTR)&lpMsgBuf, 0, NULL);
+	DisplayText("[%s] %s", msg, (char*)lpMsgBuf);
+	LocalFree(lpMsgBuf);
+	return;
+}

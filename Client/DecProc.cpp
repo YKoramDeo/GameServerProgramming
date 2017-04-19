@@ -1,5 +1,6 @@
 #include "DecProc.h"
 #include "DefaultInit.h"
+#include "NetworkInit.h"
 
 LRESULT CALLBACK DecProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lParam)
 {
@@ -13,6 +14,10 @@ LRESULT CALLBACK DecProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lParam)
 	case WM_CREATE:
 		GetClientRect(hWnd, &sWindowBoundary);
 		InitializeClient();
+		gEditHandle = CreateWindow(L"edit", NULL, 
+			WS_CHILD | WS_VISIBLE | WS_HSCROLL | WS_VSCROLL | 
+			ES_AUTOHSCROLL | ES_AUTOVSCROLL | ES_MULTILINE | ES_READONLY, 
+			0, 0, 0, 0, hWnd, (HMENU)100, gMainInstance, NULL);
 		break;
 	case WM_SIZE:
 		GetClientRect(hWnd, &sWindowBoundary);
@@ -61,6 +66,23 @@ LRESULT CALLBACK DecProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lParam)
 		DeleteDC(memdc);
 		EndPaint(hWnd, &sPaintStructure);
 		break;
+	case WM_SOCKET:
+	   {
+		if (WSAGETSELECTERROR(lParam)) {
+			closesocket((SOCKET) wParam);
+			DisplayErrCodeAndQuit("WM_SOCKET Error: ");
+			break;
+		}
+		switch (WSAGETSELECTEVENT(lParam)) {
+		case FD_READ:
+			ReadPacket((SOCKET) wParam);
+			break;
+		case FD_CLOSE:
+			closesocket((SOCKET) wParam);
+			DisplayErrCodeAndQuit("WM_SOCKET Close:");
+			break;
+		 }
+	    }
 	}
 	return 0;
 }
