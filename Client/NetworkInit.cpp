@@ -3,7 +3,6 @@
 
 SOCKETINFO gSockInfo;
 
-void ProcessSocketMessage(HWND, UINT, WPARAM, LPARAM);
 void InitializeNetworkData(void) 
 {
 	WSADATA wsadata;
@@ -31,6 +30,30 @@ void InitializeNetworkData(void)
 
 void ReadPacket(SOCKET sock)
 {
+	DWORD iobyte, ioflag = 0;
+
+	int ret = WSARecv(sock, &gSockInfo.mRecvWSABuf, 1, &iobyte, &ioflag, NULL, NULL);
+	if (ret) DisplayErrCode("Read Packet : ");
+
+	BYTE *ptr = reinterpret_cast<BYTE *>(gSockInfo.mRecvBuf);
+	while (0 != iobyte)
+	{
+		if (0 == gSockInfo.mPacketSize) gSockInfo.mPacketSize = ptr[0];
+		if (iobyte + gSockInfo.mSavedPacketSize >= gSockInfo.mPacketSize) {
+			memcpy(gSockInfo.mPacketBuf + gSockInfo.mSavedPacketSize, ptr, gSockInfo.mPacketSize - gSockInfo.mSavedPacketSize);
+			ProcessPacket(gSockInfo.mPacketBuf);
+			ptr += gSockInfo.mPacketSize - gSockInfo.mSavedPacketSize;
+			iobyte -= gSockInfo.mPacketSize - gSockInfo.mSavedPacketSize;
+			gSockInfo.mPacketSize = 0;
+			gSockInfo.mSavedPacketSize = 0;
+		}
+		else {
+			memcpy(gSockInfo.mPacketBuf + gSockInfo.mSavedPacketSize, ptr, iobyte);
+			gSockInfo.mSavedPacketSize += iobyte;
+			iobyte = 0;
+		}
+	}
+
 	return;
 }
 
@@ -72,5 +95,17 @@ void DisplayErrCode(char* msg)
 		(LPTSTR)&lpMsgBuf, 0, NULL);
 	DisplayText("[%s] %s", msg, (char*)lpMsgBuf);
 	LocalFree(lpMsgBuf);
+	return;
+}
+
+
+void ProcessPacket(char* ptr)
+{
+	switch (ptr[1])
+	{
+	default:
+		DisplayErrCode("Unknown PACKET type \n");
+		break;
+	}
 	return;
 }

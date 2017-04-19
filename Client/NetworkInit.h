@@ -9,15 +9,15 @@ struct SOCKETINFO
 	WSABUF	mRecvWSABuf;
 	char	mRecvBuf[BUF_SIZE];
 	char	mPacketBuf[BUF_SIZE];
-	DWORD	mPacketSize[BUF_SIZE];
+	DWORD	mPacketSize;
 	int		mSavedPacketSize;
 };
 
-void ProcessSocketMessage(HWND, UINT, WPARAM, LPARAM);
 void InitializeNetworkData(void);
 void DisplayText(char *, ...);
 void DisplayErrCode(char*);
 void DisplayErrCodeAndQuit(char*);
 void ReadPacket(SOCKET);
+void ProcessPacket(char*);
 
 extern SOCKETINFO gSockInfo;
