@@ -20,4 +20,6 @@ void DisplayErrCodeAndQuit(char*);
 void ReadPacket(SOCKET);
 void ProcessPacket(char*);
 
+
+
 extern SOCKETINFO gSockInfo;

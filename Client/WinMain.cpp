@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "DecProc.h"
 #include "NetworkInit.h"
+#include "DefaultInit.h"
 
 std::mutex gMutex;
 HINSTANCE gMainInstance = NULL;
@@ -75,8 +76,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lParam)
 		PostQuitMessage(0);
 		break;
 	default:
-		if (!DecProc(hWnd, uMessage, wParam, lParam))
-			return DefWindowProc(hWnd, uMessage, wParam, lParam);
+		if (gScene == SCENE::GAME) {
+			if (!DecGameProc(hWnd, uMessage, wParam, lParam))
+				return DefWindowProc(hWnd, uMessage, wParam, lParam);
+		}
+		else
+			if (!DecTitleProc(hWnd, uMessage, wParam, lParam))
+				return DefWindowProc(hWnd, uMessage, wParam, lParam);
+				
 	}
 	return 0;
 }

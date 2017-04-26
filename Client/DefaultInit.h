@@ -103,6 +103,13 @@ private:
 	int mSightRange;
 };
 
+enum SCENE
+{
+	TITLE = 0,
+	GAME = 1
+};
+
 extern CBoard gBoard[BOARD_LINE][BOARD_COLUMN];
 extern CPlayer gPlayer;
 extern CDrawManager gDrawMgr;
+extern SCENE gScene;

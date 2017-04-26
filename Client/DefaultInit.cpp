@@ -3,6 +3,7 @@
 CBoard gBoard[BOARD_LINE][BOARD_COLUMN];
 CPlayer gPlayer;
 CDrawManager gDrawMgr;
+SCENE gScene = SCENE::GAME;
 
 void rmsdyddl::RGB::SetRGB(const int& r, const int& g, const int& b)
 {

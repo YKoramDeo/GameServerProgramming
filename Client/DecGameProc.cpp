@@ -2,7 +2,7 @@
 #include "DefaultInit.h"
 #include "NetworkInit.h"
 
-LRESULT CALLBACK DecProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK DecGameProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lParam)
 {
 	static HDC hdc, memdc;
 	static PAINTSTRUCT sPaintStructure;
@@ -14,9 +14,9 @@ LRESULT CALLBACK DecProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lParam)
 	case WM_CREATE:
 		GetClientRect(hWnd, &sWindowBoundary);
 		InitializeClient();
-		gEditHandle = CreateWindow(L"edit", NULL, 
-			WS_CHILD | WS_VISIBLE | WS_HSCROLL | WS_VSCROLL | 
-			ES_AUTOHSCROLL | ES_AUTOVSCROLL | ES_MULTILINE | ES_READONLY, 
+		gEditHandle = CreateWindow(L"edit", NULL,
+			WS_CHILD | WS_VISIBLE | WS_HSCROLL | WS_VSCROLL |
+			ES_AUTOHSCROLL | ES_AUTOVSCROLL | ES_MULTILINE | ES_READONLY,
 			0, 0, 0, 0, hWnd, (HMENU)100, gMainInstance, NULL);
 		break;
 	case WM_SIZE:
