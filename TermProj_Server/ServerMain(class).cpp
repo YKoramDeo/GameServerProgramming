@@ -32,6 +32,8 @@ void AcceptThreadFunc(void);
 void SendPacket(const int, const unsigned char*);
 void ProcessPacket(int, unsigned char*);
 
+void SendLoginPacket(int);
+
 int main(int argc, char *argv[])
 {
 	std::vector<std::thread*> workerThreads;
