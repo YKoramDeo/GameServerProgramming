@@ -3,8 +3,11 @@
 
 HANDLE ghIOCP;
 
-void InitializeServerData(void);
 void DisplayDebugText(std::string);
+void DisplayErrMsg(char*, int);
+void InitializeServerData(void);
+
+void StopServer();
 
 int main()
 {
@@ -22,13 +25,34 @@ void DisplayDebugText(std::string str)
 	return;
 }
 
+void DisplayErrMsg(char* str, int errNo)
+{
+	WCHAR *lpMsgBuf;
+	FormatMessage(
+		FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
+		NULL, errNo, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+		(LPTSTR)&lpMsgBuf, 0, NULL);
+	printf("%s", str); wprintf(L" %d Error :: %s\n", errNo, lpMsgBuf);
+	LocalFree(lpMsgBuf);
+	// FormatMessage() : 오류코드에 대응하는 오류 메시지를 얻을 수 있다.
+
+	// FORMAT_MESSAGE_ALLOCATE_BUFFER			: 오류 메시지를 저장할 공간을 함수가 알아서 할당한다는 의미
+	// FORMAT_MESSAGE_FROM_SYSTEN				: OS로부터 오류 메시지를 가져온다는 의미
+
+	// MAKELANGID(LANG_NEUTRAL,SUBLANG_DEFAULT)	: 사용자가 제어판에서 설정한 기본언어로 오류메시지 얻을 수 있음
+	// lpMsgBuf 는 오류 메시지를 저장할 공간인데 함수가 알아서 할당, 
+	// 오류 메시지 사용을 마치면 LocalFree() 함수를 이용해 할당한 메모리 반환 필수
+	return;
+}
+
+
 void InitializeServerData(void)
 {
 	// 02. 기본적인 server를 동작하기 위한 초기화 작업을 진행한다.
 	WSADATA wsadata;
 	if (WSAStartup(MAKEWORD(2, 2), &wsadata) != 0)
 	{
-		DisplayDebugText("ERROR :: InitializeServerData :: WSAStartup Fail !!");
+		DisplayDebugText("ERROR :: InitializeServerData :: [ WSAStartup ] Fail !!");
 		exit(EXIT_FAILURE);
 		// exit()	: 프로그램에서 호스트 환경에 제어를 리턴함. atexit() 함수에 등록된 모든 함수를 역순으로 호출.
 		//			: 프로그램을 종료하기 전에 버퍼를 모두 삭제하고 열린 파일을 모두 닫음. 
@@ -46,12 +70,25 @@ void InitializeServerData(void)
 	ghIOCP = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, NULL, 0);
 	if (NULL == ghIOCP)
 	{
-		DisplayDebugText("ERROR :: InitializeServerData :: CreateIoCompletionPort Fail !!");
+		DisplayDebugText("ERROR :: InitializeServerData :: [ CreateIoCompletionPort ] Fail !!");
 		exit(EXIT_FAILURE);
 	}
 	
 	// CreateIoCompletionPort()	: 1. 입출력 완료 포트를 생성.
 	//							: 2. 소켓과 입출력 완료포트를 연결.
 	//								소켓과 입출력 완료포트를 연결해두면 이 소켓에 대한 비동기 입출력 결과가 입출력 완료포트에 저장.
+	return;
+}
+
+void StopServer()
+{
+	if (WSACleanup() != 0) {
+		DisplayErrMsg("Error :: StopServer :: [ WSACleanup ] Fail !!", GetLastError());
+		exit(EXIT_FAILURE);
+	}
+
+	// WSACleanup() : 프로그램 종료 시 윈속 종료 함수
+	//				: 윈속 사용을 중지함을 운영체제에 알리고, 관련 리소르스를 반환.
+
 	return;
 }
