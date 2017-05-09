@@ -5,16 +5,33 @@ HANDLE ghIOCP;
 
 void DisplayDebugText(std::string);
 void DisplayErrMsg(char*, int);
-void InitializeServerData(void);
 
+void InitializeServerData(void);
 void StopServer();
+void AcceptThreadFunc();
 
 int main()
 {
 	// 01. Main문은 다음과 같이 동작하도록 한다.
 	InitializeServerData();
-	CreateAcceptThread();
-	CreateWorkerThreads();
+
+	// 03. Main문에서 Accept Thread를 생성하는 선언을 한다.
+	std::thread accept_thread;
+	accept_thread = std::thread(AcceptThreadFunc);
+	
+	// 04. Main문에서 Worker Thread를 생성하는 선언을 한다.
+	//	WorkerThread는 NUM_THREADS에서 6개로 지정했으니 이 thread를 관리하는 thread 컨테이너를 선언한다.
+	std::vector<std::thread*> worker_threads;
+	for (int i = 0; i < NUM_THREADS; ++i)
+		worker_threads.push_back(new std::thread(WorkerThreadFunc));
+	
+	for (auto th : worker_threads)
+	{
+		th->join();
+		delete th;
+	}
+
+	accept_thread.join();
 	StopServer();
 	return 0;
 }
@@ -44,7 +61,6 @@ void DisplayErrMsg(char* str, int errNo)
 	// 오류 메시지 사용을 마치면 LocalFree() 함수를 이용해 할당한 메모리 반환 필수
 	return;
 }
-
 
 void InitializeServerData(void)
 {
@@ -77,6 +93,7 @@ void InitializeServerData(void)
 	// CreateIoCompletionPort()	: 1. 입출력 완료 포트를 생성.
 	//							: 2. 소켓과 입출력 완료포트를 연결.
 	//								소켓과 입출력 완료포트를 연결해두면 이 소켓에 대한 비동기 입출력 결과가 입출력 완료포트에 저장.
+	DisplayDebugText("Initialize Server Data Success!");
 	return;
 }
 
@@ -90,5 +107,11 @@ void StopServer()
 	// WSACleanup() : 프로그램 종료 시 윈속 종료 함수
 	//				: 윈속 사용을 중지함을 운영체제에 알리고, 관련 리소르스를 반환.
 
+	return;
+}
+
+void AcceptThreadFunc()
+{
+	DisplayDebugText("AcceptThreadFunc :: Run!!");
 	return;
 }
