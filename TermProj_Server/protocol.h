@@ -40,7 +40,7 @@ enum PacketType
 };
 
 #pragma pack(push,1)
-struct Player
+struct Object
 {
 	int id;
 	POINT pos;
