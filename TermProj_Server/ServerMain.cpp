@@ -26,12 +26,15 @@ HANDLE ghIOCP;
 SOCKET gServerSock;
 Client gClientsList[MAX_USER];
 
-void DisplayDebugText(std::string);
-void DisplayErrMsg(char*, int);
+void DisplayDebugText(const std::string);
+void DisplayErrMsg(const char*, const int);
 
 void InitializeServerData(void);
 void StopServer(void);
 void AcceptThreadFunc(void);
+void WorkerThreadFunc(void);
+void ProcessPacket(const int, const unsigned char*);
+void SendPacket(const int, const unsigned char*);
 
 int main(int argc, char *argv[])
 {
@@ -59,13 +62,13 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
-void DisplayDebugText(std::string msg)
+void DisplayDebugText(const std::string msg)
 {
 	std::cout << msg << std::endl;
 	return;
 }
 
-void DisplayErrMsg(char* str, int err_no)
+void DisplayErrMsg(const char* str, const int err_no)
 {
 	WCHAR *msg_buf;
 	FormatMessage(
@@ -340,7 +343,7 @@ void WorkerThreadFunc(void)
 					memcpy(completed_packet_buf, gClientsList[key_id].packet_buf, prev_packet_size);
 					memcpy(completed_packet_buf + prev_packet_size, iocp_buf_ptr, curr_packet_size - prev_packet_size);
 					// + 하는 이유는 지난 번에 받은 데이터 이후에 저장을 해야 하기 때문에 그 시작 위치를 지정하기 위한 연산.
-					// ProcessPacket(static_cast<int>(key_id), completed_packet_buf);
+					ProcessPacket(static_cast<int>(key_id), completed_packet_buf);
 					received_size_to_process -= (curr_packet_size - prev_packet_size);
 					iocp_buf_ptr += (curr_packet_size - prev_packet_size);
 					// 날라온 데이터를 이용하여 기존의 것과 더하여 하나의 packet을 처리하긴 했지만 그럼에도 불구하고 남아있는 데이터가 있을 수 있음.
@@ -388,6 +391,38 @@ void WorkerThreadFunc(void)
 			DisplayDebugText("WorkerThreadFunc :: Unknown GQCS Event Type!");
 			exit(EXIT_FAILURE);
 		}
+	}
+	return;
+}
+
+void ProcessPacket(const int key_id, const unsigned char *packet)
+{
+	unsigned char packet_type = packet[1];
+	switch (packet_type)
+	{
+	default:
+		DisplayDebugText("Unknown Packet Type Detected...");
+		return;
+	}
+	return;
+}
+
+void SendPacket(const int key_id, const unsigned char* packet)
+{
+	int ret_val = 0;
+	WSAOVERLAPPED_EX *send_overlap = new WSAOVERLAPPED_EX;
+	memset(send_overlap, 0, sizeof(WSAOVERLAPPED_EX));
+	send_overlap->event_type = E_SEND;
+	memset(&send_overlap->origin_over, 0, sizeof(WSAOVERLAPPED));
+	ZeroMemory(send_overlap->iocp_buf, MAX_BUFF_SIZE);
+	send_overlap->wsabuf.buf = reinterpret_cast<CHAR*>(send_overlap->iocp_buf);
+	send_overlap->wsabuf.len = packet[0];
+	memcpy(send_overlap->iocp_buf, packet, packet[0]);
+	ret_val = WSASend(gClientsList[key_id].sock, &send_overlap->wsabuf, 1, NULL, 0, &send_overlap->origin_over, NULL);
+	if (0 != ret_val) {
+		int err_no = WSAGetLastError();
+		if (WSA_IO_PENDING != err_no)
+			DisplayErrMsg("Error :: SendPacket :: WSASend Fail !!", err_no);
 	}
 	return;
 }
