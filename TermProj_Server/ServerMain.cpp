@@ -1,6 +1,8 @@
 #include "stdafx.h"
 #include "protocol.h"
 
+enum EVENTTYPE { E_RECV, E_SEND };
+
 struct WSAOVERLAPPED_EX
 {
 	WSAOVERLAPPED	origin_over;				// 기존의 Overlapped 구조체
@@ -21,6 +23,7 @@ struct Client
 };
 
 HANDLE ghIOCP;
+Client gClientsList[MAX_USER];
 
 void DisplayDebugText(std::string);
 void DisplayErrMsg(char*, int);
@@ -117,6 +120,10 @@ void InitializeServerData(void)
 
 void StopServer(void)
 {
+	for (auto client : gClientsList)
+		if (client.connect)
+			closesocket(client.sock);
+
 	if (WSACleanup() != 0) {
 		DisplayErrMsg("Error :: StopServer :: [ WSACleanup ] Fail !!", GetLastError());
 		exit(EXIT_FAILURE);
@@ -199,6 +206,15 @@ void AcceptThreadFunc(void)
 		//				: 서버입장에서는 원격 IP주소와 원격 포트번호, 클라이언트 입장에서는 지역 IP주소와 지역 포트번호
 		
 		// ADD::접속한 클라이언트의 새로운 ID를 부여하는 구간
+		for (auto i = 0; i < MAX_USER; ++i)
+		{
+			if (gClientsList[i].connect == false)
+			{
+				new_id = i;
+				break;
+			}
+		}
+
 		if (-1 == new_id)
 		{
 			DisplayDebugText("AcceptThread :: Maximum User Number Sorry :(");
@@ -218,7 +234,33 @@ void AcceptThreadFunc(void)
 		//							: 소켓과 입출력 완료포트를 연결해두면 이 소켓에 대한 비동기 입출력 결과가 입출력 완료포트에 저장.
 
 		// ADD::연결된 클라이언트 Network 정보 초기화
+		gClientsList[new_id].connect = true;
+		gClientsList[new_id].player.id = new_id;
+		gClientsList[new_id].player.pos.x = 4;
+		gClientsList[new_id].player.pos.y = 4;
+		gClientsList[new_id].sock = new_client_sock;
+		memset(&gClientsList[new_id].recv_overlap.origin_over, 0, sizeof(WSAOVERLAPPED));
+		// WSARecv, WSASend를 하기 이전에 Overlap 구조체를 초기화를 해주어야 한다.
+		// 그렇지 않으면 가끔식 error number 6인 "핸들이 없습니다."라는 오류를 보내온다.
+		ZeroMemory(gClientsList[new_id].recv_overlap.iocp_buf, MAX_BUFF_SIZE);
+		gClientsList[new_id].recv_overlap.wsabuf.buf = reinterpret_cast<CHAR*>(gClientsList[new_id].recv_overlap.iocp_buf);
+		gClientsList[new_id].recv_overlap.wsabuf.len = MAX_BUFF_SIZE;
+		gClientsList[new_id].recv_overlap.operation = E_RECV;
+		ZeroMemory(gClientsList[new_id].packet_buf, MAX_BUFF_SIZE);
+		gClientsList[new_id].curr_packet_size = 0;
+		gClientsList[new_id].prev_packet_size = 0;
+		
 		// ADD::연결된 새로운 소켓 Recv수행.
+		DWORD flags = 0;
+		ret_val = WSARecv(new_client_sock, &gClientsList[new_id].recv_overlap.wsabuf, 1, NULL, &flags, &gClientsList[new_id].recv_overlap.origin_over, NULL);
+		if (0 != ret_val)
+		{
+			int err_no = WSAGetLastError();
+			if (WSA_IO_PENDING != err_no)
+				DisplayErrMsg("Error :: AcceptThreadFunc :: WSARecv", err_no);
+		}
+
+		DisplayDebugText("AcceptThreadFunc :: Accept Success :)");
 	}
 	return;
 }
