@@ -190,8 +190,8 @@ void AcceptThreadFunc(void)
 		// ADD::연결된 클라이언트 Network 정보 초기화
 		gClientsList[new_id].connect = true;
 		gClientsList[new_id].player.id = new_id;
-		gClientsList[new_id].player.pos.x = 4;
-		gClientsList[new_id].player.pos.y = 4;
+		gClientsList[new_id].player.pos.x = 0;
+		gClientsList[new_id].player.pos.y = 0;
 		gClientsList[new_id].sock = new_client_sock;
 		memset(&gClientsList[new_id].recv_overlap.origin_over, 0, sizeof(WSAOVERLAPPED));
 		// WSARecv, WSASend를 하기 이전에 Overlap 구조체를 초기화를 해주어야 한다.
@@ -318,7 +318,7 @@ void WorkerThreadFunc(void)
 		else if (E_SEND == overlap->event_type)
 		{
 			std::string text = "Send Complete to Client : " + std::to_string(static_cast<int>(key_id));
-			DisplayDebugText(text);
+			//DisplayDebugText(text);
 			if (io_size != overlap->iocp_buf[0])
 			{
 				DisplayDebugText("Error :: WorkerThreadFunc :: Incomplete Packet Send !!");

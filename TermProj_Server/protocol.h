@@ -9,10 +9,9 @@
 #define MAX_BUFF_SIZE		4000
 #define MAX_PACKET_SIZE		255
 
-#define OP_RECV				1
-#define OP_SEND				2
-
 #define NIL					-999
+#define BOARD_LINE			8
+#define BOARD_COLUMN		8
 
 namespace Const
 {
