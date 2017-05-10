@@ -9,9 +9,9 @@ void ProcessPacket(const int key_id, unsigned char *packet)
 
 	case PacketType::CS_MOVE:
 	{
-		CS_MOVE_PACKET *received_data = reinterpret_cast<CS_MOVE_PACKET*>(packet);
+		CS_MOVE_PACKET *received_data_ptr = reinterpret_cast<CS_MOVE_PACKET*>(packet);
 		std::string text = std::to_string(key_id) + " client send move packet : ";
-		switch (received_data->dir)
+		switch (received_data_ptr->dir)
 		{
 		case Const::MoveDirection::None: text += "None";	break;
 		case Const::MoveDirection::Left: text += "Left";	break;
@@ -21,7 +21,7 @@ void ProcessPacket(const int key_id, unsigned char *packet)
 		default: text += "None";	break;
 		}
 		DisplayDebugText(text);
-		ProcessReceivePacket::CS_MOVE_PACKET(key_id, received_data->dir);
+		ProcessReceivePacket::CS_MOVE_PACKET(key_id, received_data_ptr->dir);
 		break;
 	}
 	default:
@@ -63,6 +63,7 @@ void ProcessReceivePacket::CS_MOVE_PACKET(int key_id, BYTE dir)
 	packet.size = sizeof(SC_POSITION_INFO_PACKET);
 	packet.type = PacketType::SC_POSITION_INFO;
 	packet.id = key_id;
+	packet.dir = dir;
 	packet.x_pos = x;
 	packet.y_pos = y;
 

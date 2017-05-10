@@ -1,4 +1,5 @@
 #include "NetworkInit.h"
+#include "DefaultInit.h"
 #include "../TermProj_Server/protocol.h"
 
 SOCKETINFO gSockInfo;
@@ -98,18 +99,6 @@ void DisplayErrCode(char* msg)
 	return;
 }
 
-
-void ProcessPacket(char* ptr)
-{
-	switch (ptr[1])
-	{
-	default:
-		DisplayErrCode("Unknown PACKET type \n");
-		break;
-	}
-	return;
-}
-
 void SendMovePacket(const WPARAM wParam)
 {
 	BYTE direction = Const::MoveDirection::None;
@@ -133,5 +122,23 @@ void SendMovePacket(const WPARAM wParam)
 	int ret_val = WSASend(gSockInfo.mSock, &gSockInfo.mSendWSABuf, 1, &io_byte, 0, NULL, NULL);
 	if (ret_val)
 		DisplayErrCode("Error :: SendMovePacket Fail!!");
+	return;
+}
+
+void ProcessPacket(char* ptr)
+{
+	switch (ptr[1])
+	{
+	case PacketType::SC_POSITION_INFO:
+	{
+		SC_POSITION_INFO_PACKET *received_data_ptr = reinterpret_cast<SC_POSITION_INFO_PACKET*>(ptr);
+		gPlayer.SetBoardPos(received_data_ptr->x_pos, received_data_ptr->y_pos);
+		gDrawMgr.Move(received_data_ptr->dir);
+		break;
+	}
+	default:
+		DisplayErrCode("Unknown PACKET type \n");
+		break;
+	}
 	return;
 }

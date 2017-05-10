@@ -37,7 +37,6 @@ LRESULT CALLBACK DecGameProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lPa
 			SendMovePacket(wParam);
 			break;
 		}
-		InvalidateRect(hWnd, &sWindowBoundary, false);
 		break;
 	case WM_PAINT:
 		hdc = BeginPaint(hWnd, &sPaintStructure);
@@ -77,6 +76,8 @@ LRESULT CALLBACK DecGameProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lPa
 		switch (WSAGETSELECTEVENT(lParam)) {
 		case FD_READ:
 			ReadPacket((SOCKET) wParam);
+			ResetBoardSetting();
+			InvalidateRect(hWnd, &sWindowBoundary, false);
 			break;
 		case FD_CLOSE:
 			closesocket((SOCKET) wParam);

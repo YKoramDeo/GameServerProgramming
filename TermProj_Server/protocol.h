@@ -90,6 +90,7 @@ struct SC_LOGIN_FAIL_PACKET : public Packet { };
 struct SC_POSITION_INFO_PACKET : public Packet
 {
 	WORD id;
+	BYTE dir;
 	WORD x_pos;
 	WORD y_pos;
 };
