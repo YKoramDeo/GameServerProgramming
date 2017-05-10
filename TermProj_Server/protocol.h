@@ -7,6 +7,7 @@
 #define MAX_USER			10
 
 #define MAX_BUFF_SIZE		4000
+#define MAX_PACKET_SIZE		255
 
 #define OP_RECV				1
 #define OP_SEND				2

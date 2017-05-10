@@ -7,7 +7,7 @@ struct WSAOVERLAPPED_EX
 {
 	WSAOVERLAPPED	origin_over;				// 기존의 Overlapped 구조체
 	WSABUF			wsabuf;						// 기존의 WSABUF
-	int				operation;					// 현재 Send or Recv 연산을 진행하는 것인지 여부를 저장하는 변수
+	EVENTTYPE		event_type;					// 현재 Send or Recv 연산을 진행하는 것인지 여부를 저장하는 변수
 	unsigned char	iocp_buf[MAX_BUFF_SIZE];	// IOCP Send / Recv Buffer
 };
 
@@ -17,7 +17,7 @@ struct Client
 	Object				player;						// 게임상의 객체의 기본적인 정보를 저장하는 변수
 	SOCKET				sock;						// accept를 통해서 생성된 Network 통신을 위한 client socket
 	WSAOVERLAPPED_EX	recv_overlap;				// recv한 내용을 저장하기 위한 확장 overlapped 구조체
-	unsigned char		packet_buf[MAX_BUFF_SIZE];	// recv되는 패킷이 조립되는 Buffer / Send 할 때는 사용되지 않으므로 확장 구조체에서 제외
+	unsigned char		packet_buf[MAX_PACKET_SIZE];	// recv되는 패킷이 조립되는 Buffer / Send 할 때는 사용되지 않으므로 확장 구조체에서 제외
 	int					prev_packet_size;			// 이전에 받은 양을 저장하는 변수 / Send 할 때는 사용되지 않으므로 확장 구조체에서 제외
 	int					curr_packet_size;			// 현재 받은 packet의 양
 };
@@ -253,21 +253,43 @@ void AcceptThreadFunc(void)
 		ZeroMemory(gClientsList[new_id].recv_overlap.iocp_buf, MAX_BUFF_SIZE);
 		gClientsList[new_id].recv_overlap.wsabuf.buf = reinterpret_cast<CHAR*>(gClientsList[new_id].recv_overlap.iocp_buf);
 		gClientsList[new_id].recv_overlap.wsabuf.len = MAX_BUFF_SIZE;
-		gClientsList[new_id].recv_overlap.operation = E_RECV;
+		gClientsList[new_id].recv_overlap.event_type = E_RECV;
 		ZeroMemory(gClientsList[new_id].packet_buf, MAX_BUFF_SIZE);
 		gClientsList[new_id].curr_packet_size = 0;
 		gClientsList[new_id].prev_packet_size = 0;
 		
 		// ADD::연결된 새로운 소켓 Recv수행.
-		DWORD flags = 0;
-		ret_val = WSARecv(new_client_sock, &gClientsList[new_id].recv_overlap.wsabuf, 1, NULL, &flags, &gClientsList[new_id].recv_overlap.origin_over, NULL);
+		DWORD recv_flag = 0;
+		ret_val = WSARecv(new_client_sock, &gClientsList[new_id].recv_overlap.wsabuf, 1, NULL, &recv_flag, &gClientsList[new_id].recv_overlap.origin_over, NULL);
 		if (0 != ret_val)
 		{
 			int err_no = WSAGetLastError();
 			if (WSA_IO_PENDING != err_no)
 				DisplayErrMsg("Error :: AcceptThreadFunc :: WSARecv", err_no);
 		}
-
+		// WSARecv(1, 2, 3, 4, 5, 6) : socket으로 받은 데이터를 받는 동작을 처리하는 함수
+		// 1. SOCKET s : 비동기 입출력을 할 대상 소켓.
+		// 2. LPWSABUF lpBuffers
+		//	  DWORD dwBufferCount : WSABUF 구조체 배열의 시작 주소와 배열의 원소 개수
+		//		typedef struct __WSABUF {
+		//			u_long	len;			// 길이
+		//			char	*buf;			// 버퍼 시작 주소
+		//		} WSABUF, *LPWSABUF;
+		// 3. LPDWORD lpNumverOfBytesRecvd : 함수 호출이 성공하면 보내거나 받은 바이트 수를 저장.
+		// 4. DWORD dwFlags : 옵션으로 MSG_* 형태의 상수를 전달할 수 있는데, 각각 send()와 recv() 함수의 마지막 인자와 같은 기능을 한다. 대부분 0 사용
+		// 5. LPWSAOVERLAPPED lpOverlapped : WSAOVERLAPPED 구조체의 주소 값.
+		//		WSAOVERLAPPED 구조체는 비동기 입출력을 위한 정보를 운영체제에 전달하거나, 운영체제가 비동기 입출력 결과를 응용 프로그램에 알려줄 때 사용
+		//		WSAOVERLAPPED 구조체 중 처음 4개는 운영체제가 내부적으로 사용한다. 
+		//		typedef struct _WSAOVERLAPPED {
+		//			DWORD Internal;
+		//			DWORD InternalHigh;
+		//			DWORD Offset;
+		//			DWORD OffsetHigh;
+		//			WSAEVENT hEvent;
+		//		} WSAOVERLAPPED, *LPWSAOVERLAPPED;
+		//		마지막 변수인 hEvent는 이벤트 객체의 핸들 값으로 Overlapped모델(1)에서만 사용한다. 
+		//		입출력 작업이 완료되면 hEvent가 가리키는 이벤트 객체는 신호 상태가 된다.
+		// 6. LPWSAOVERLAPPED_COMPLETION_ROUTINE lpCompletionRoutine : 입출력 작업이 완료되면 운영체제가 자동으로 호출할 완료 루틴(콜백 함수)의 주소 값.
 		DisplayDebugText("AcceptThreadFunc :: Accept Success :)");
 	}
 	return;
@@ -275,5 +297,97 @@ void AcceptThreadFunc(void)
 
 void WorkerThreadFunc(void)
 {
+	DWORD io_size, key_id;
+	WSAOVERLAPPED_EX *overlap;
+	bool result = false;
+	int ret_val = 0;
+
+	while (true)
+	{
+		result = GetQueuedCompletionStatus(ghIOCP, &io_size, reinterpret_cast<PULONG_PTR>(&key_id), reinterpret_cast<LPOVERLAPPED*>(&overlap), INFINITE);
+		if (!result)
+		{
+			int err_no = WSAGetLastError();
+			if (64 == err_no) closesocket(gClientsList[key_id].sock);
+			else DisplayErrMsg("Error :: WorkerThreadFunc :: GetQueuedCompletionStatus Fail !!", WSAGetLastError());
+			continue;
+		}
+		if (0 == io_size)
+		{
+			closesocket(gClientsList[key_id].sock);
+
+			// ADD::각 플레이어에게 접속 종료 알림
+			// ...
+			gClientsList[key_id].connect = false;
+			continue;
+		}
+		if (E_RECV == overlap->event_type)
+		{
+			unsigned char *iocp_buf_ptr = overlap->iocp_buf;
+			unsigned char completed_packet_buf[MAX_PACKET_SIZE];
+			int received_size_to_process = io_size;
+			int curr_packet_size = gClientsList[key_id].curr_packet_size;
+			int prev_packet_size = gClientsList[key_id].prev_packet_size;
+			while (0 < received_size_to_process)
+			{
+				if (0 == curr_packet_size) curr_packet_size = iocp_buf_ptr[0];
+				if (curr_packet_size <= received_size_to_process + prev_packet_size)
+				{
+					// 패킷을 완성 시킬 수 있는 상황이면 패킷을 어떠한 공간에 쌓아두고 저장해두어야 한다.
+					// 그래서 패킷을 완성시키는 저장공간이 별도로 있어야 한다.
+					// 데이터가 패킷단위로 오는 것이 아니기 때문에 패킷단위로 처리하고 남은 데이터는 별도의 공간에 저장해야 한다.
+					// 다음에 온 데이터가 온전하지 못한채로 오게되면 별도의 공간에 집어넣고 하나의 패킷으로 마저 만들어 주어야 한다.
+					memcpy(completed_packet_buf, gClientsList[key_id].packet_buf, prev_packet_size);
+					memcpy(completed_packet_buf + prev_packet_size, iocp_buf_ptr, curr_packet_size - prev_packet_size);
+					// + 하는 이유는 지난 번에 받은 데이터 이후에 저장을 해야 하기 때문에 그 시작 위치를 지정하기 위한 연산.
+					// ProcessPacket(static_cast<int>(key_id), completed_packet_buf);
+					received_size_to_process -= (curr_packet_size - prev_packet_size);
+					iocp_buf_ptr += (curr_packet_size - prev_packet_size);
+					// 날라온 데이터를 이용하여 기존의 것과 더하여 하나의 packet을 처리하긴 했지만 그럼에도 불구하고 남아있는 데이터가 있을 수 있음.
+					// 그 내용을 저장하기 위하여 남아있는 처리해야할 데이터와 buffer의 시작위치를 변경해줌
+					curr_packet_size = 0;
+					prev_packet_size = 0;
+				}
+				else {
+					memcpy(gClientsList[key_id].packet_buf + prev_packet_size, iocp_buf_ptr, received_size_to_process);
+					prev_packet_size += received_size_to_process;
+					iocp_buf_ptr += received_size_to_process;
+					received_size_to_process = 0;
+					// packet으로 만들지 못한 데이터를 남은 buffer에 저장함.
+				}
+			}
+			gClientsList[key_id].curr_packet_size = curr_packet_size;
+			gClientsList[key_id].prev_packet_size = prev_packet_size;
+			// 크기에 대한 정보를 client정보를 담는 내용에 저장.
+			DWORD recv_flag = 0;
+			ret_val = WSARecv(gClientsList[key_id].sock, &gClientsList[key_id].recv_overlap.wsabuf,
+				1, NULL, &recv_flag, &gClientsList[key_id].recv_overlap.origin_over,
+				NULL);
+			if (0 != ret_val) {
+				int err_no = WSAGetLastError();
+				if (WSA_IO_PENDING != err_no)
+					DisplayErrMsg("Error :: WorkerThreadFunc :: WSARecv Fail !!", err_no);
+			}
+		}
+		else if (E_SEND == overlap->event_type)
+		{
+			std::string text = "Send Complete to Client : " + std::to_string(static_cast<int>(key_id));
+			DisplayDebugText(text);
+			if (io_size != overlap->iocp_buf[0])
+			{
+				DisplayDebugText("Error :: WorkerThreadFunc :: Incomplete Packet Send !!");
+				exit(EXIT_FAILURE);
+			}
+			// 다음의 동작은 운영체제의 send 데이터 버퍼가 비워지지 않고 메모리가 가득 차서 부부적으로만 보내진 경우이다.
+			// 사실상 이러한 동작까지 왔다는 것은 운영체제가 이미 한계라는 의미이다. 그러므로 예외처리하고 끊어버려야 한다.
+			// 이러한 일이 벌어지지 않으려면 send 데이터의 양을 조절해야 한다.
+			delete overlap;
+		}
+		else
+		{
+			DisplayDebugText("WorkerThreadFunc :: Unknown GQCS Event Type!");
+			exit(EXIT_FAILURE);
+		}
+	}
 	return;
 }
