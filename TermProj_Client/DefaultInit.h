@@ -1,5 +1,6 @@
 #pragma once
 #include "stdafx.h"
+#include "../TermProj_Server/protocol.h"
 
 namespace rmsdyddl
 {

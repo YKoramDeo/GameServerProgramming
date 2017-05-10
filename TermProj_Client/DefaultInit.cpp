@@ -1,4 +1,5 @@
 #include "DefaultInit.h"
+#include "../TermProj_Server/protocol.h"
 
 CBoard gBoard[BOARD_LINE][BOARD_COLUMN];
 CPlayer gPlayer;

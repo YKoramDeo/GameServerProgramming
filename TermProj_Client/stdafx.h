@@ -15,8 +15,7 @@
 #define WINDOW_WIDTH		800
 #define WINDOW_HEIGHT		800
 
-#define BOARD_LINE			8
-#define BOARD_COLUMN		8
+
 
 #define WM_SOCKET			(WM_USER + 1)
 #define	BUF_SIZE			1024
