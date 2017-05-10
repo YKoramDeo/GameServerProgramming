@@ -31,9 +31,10 @@ LRESULT CALLBACK DecGameProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lPa
 		case VK_RIGHT:
 		case VK_UP:
 		case VK_DOWN:
-			gPlayer.Move(wParam);
-			gDrawMgr.Move(wParam);
-			ResetBoardSetting();
+			//gPlayer.Move(wParam);
+			//gDrawMgr.Move(wParam);
+			//ResetBoardSetting();
+			SendMovePacket(wParam);
 			break;
 		}
 		InvalidateRect(hWnd, &sWindowBoundary, false);

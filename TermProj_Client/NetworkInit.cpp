@@ -1,5 +1,5 @@
 #include "NetworkInit.h"
-#include "../Server/protocol.h"
+#include "../TermProj_Server/protocol.h"
 
 SOCKETINFO gSockInfo;
 
@@ -107,5 +107,31 @@ void ProcessPacket(char* ptr)
 		DisplayErrCode("Unknown PACKET type \n");
 		break;
 	}
+	return;
+}
+
+void SendMovePacket(const WPARAM wParam)
+{
+	BYTE direction = Const::MoveDirection::None;
+	switch (wParam)
+	{
+	   case VK_LEFT	: direction = Const::MoveDirection::Left;	break;
+	   case VK_RIGHT: direction = Const::MoveDirection::Right;	break;
+	   case VK_UP	: direction = Const::MoveDirection::Up;		break;
+	   case VK_DOWN	: direction = Const::MoveDirection::Down;	break;
+	   default		: direction = Const::MoveDirection::None;	break;
+	}
+	CS_MOVE_PACKET packet;
+	packet.size = sizeof(CS_MOVE_PACKET);
+	packet.type = PacketType::CS_MOVE;
+	packet.dir = direction;
+	DWORD io_byte;
+	
+	unsigned char* packet_ptr = reinterpret_cast<unsigned char*>(&packet);
+	gSockInfo.mSendWSABuf.len = packet_ptr[0];
+	memcpy(gSockInfo.mSendWSABuf.buf, packet_ptr, packet_ptr[0]);
+	int ret_val = WSASend(gSockInfo.mSock, &gSockInfo.mSendWSABuf, 1, &io_byte, 0, NULL, NULL);
+	if (ret_val)
+		DisplayErrCode("Error :: SendMovePacket Fail!!");
 	return;
 }
