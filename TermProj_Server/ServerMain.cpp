@@ -23,6 +23,7 @@ struct Client
 };
 
 HANDLE ghIOCP;
+SOCKET gServerSock;
 Client gClientsList[MAX_USER];
 
 void DisplayDebugText(std::string);
@@ -114,33 +115,11 @@ void InitializeServerData(void)
 	//							: 2. 소켓과 입출력 완료포트를 연결.
 	//								소켓과 입출력 완료포트를 연결해두면 이 소켓에 대한 비동기 입출력 결과가 입출력 완료포트에 저장.
 	
-	DisplayDebugText("Initialize Server Data Success!");
-	return;
-}
-
-void StopServer(void)
-{
-	for (auto client : gClientsList)
-		if (client.connect)
-			closesocket(client.sock);
-
-	if (WSACleanup() != 0) {
-		DisplayErrMsg("Error :: StopServer :: [ WSACleanup ] Fail !!", GetLastError());
-		exit(EXIT_FAILURE);
-	}
-	// WSACleanup() : 프로그램 종료 시 윈속 종료 함수
-	//				: 윈속 사용을 중지함을 운영체제에 알리고, 관련 리소르스를 반환.
-
-	return;
-}
-
-void AcceptThreadFunc(void)
-{
-	SOCKET accept_sock = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
-	if (INVALID_SOCKET == accept_sock)
+	gServerSock = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
+	if (INVALID_SOCKET == gServerSock)
 	{
-		DisplayErrMsg("Error :: AcceptThreadFunc :: Create Accept Socket Fail !!", WSAGetLastError());
-		return;
+		DisplayErrMsg("Error :: InitializeServerData :: Create Global Server Socket Fail !!", WSAGetLastError());
+		exit(EXIT_FAILURE);
 	}
 	// WSASocket(1, 2, 3, 4, 5, 6) : socket을 생성하는 함수
 	// 1. af			 : address family - AF_INET만 사용 (그 밖에 AF_NETBIOS, AF_IRDA, AF_INET6가 존재.)
@@ -150,12 +129,12 @@ void AcceptThreadFunc(void)
 	// 5. g				 : 예약
 	// 6. dgFlags		 : 소켓의 속성 - 보통 0 (또는 WSA_PROTOCOL_OVERLAPPED)
 
-	struct sockaddr_in listen_addr;
-	ZeroMemory(&listen_addr, sizeof(listen_addr));
-	listen_addr.sin_family = AF_INET;
-	listen_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	listen_addr.sin_port = htons(MY_SERVER_PORT);
-	ZeroMemory(&listen_addr.sin_zero, 8);
+	SOCKADDR_IN server_addr;
+	ZeroMemory(&server_addr, sizeof(server_addr));
+	server_addr.sin_family = AF_INET;
+	server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+	server_addr.sin_port = htons(MY_SERVER_PORT);
+	ZeroMemory(&server_addr.sin_zero, 8);
 	// sockaddr_in : 소켓 주소 구조체 socket address structures
 	//			   : 네트워크 프로그램에서 필요한 주소 정보를 담고 있는 구조체.
 	//			   : 특히, 여기서 사용된 sockaddr_in은 IPv4에 사용된 소켓 주소 구조체.
@@ -169,10 +148,10 @@ void AcceptThreadFunc(void)
 	// 4. char		sin_zero[8] : 0으로 설정하면 되는 여유 공간이다.
 
 	int ret_val = 0;
-	ret_val = ::bind(accept_sock, reinterpret_cast<sockaddr*>(&listen_addr), sizeof(listen_addr));
+	ret_val = ::bind(gServerSock, reinterpret_cast<sockaddr*>(&server_addr), sizeof(server_addr));
 	if (SOCKET_ERROR == ret_val)
 	{
-		DisplayErrMsg("Error :: AcceptThreadFunc :: Bind Fail !!", WSAGetLastError());
+		DisplayErrMsg("Error :: InitializeServerData :: Bind Fail !!", WSAGetLastError());
 		exit(EXIT_FAILURE);
 	}
 	// bind() : 소켓의 지역 IP주소와 지역 포트 번호를 결정, 
@@ -180,23 +159,51 @@ void AcceptThreadFunc(void)
 	// listen_addr : 지역 IP와 지역 포트 번호로 초기화한 소켓 주소 구조체를 전달.
 	// bind 함수의 2번째 인자는 항상 (SOCKADDR*)형을 반환해야 함.
 
-	ret_val = listen(accept_sock, SOMAXCONN);
+	ret_val = listen(gServerSock, SOMAXCONN);
 	if (SOCKET_ERROR == ret_val)
 	{
-		DisplayErrMsg("Error :: AcceptThreadFunc :: Listen Fail !!",WSAGetLastError());
+		DisplayErrMsg("Error :: AcceptThreadFunc :: Listen Fail !!", WSAGetLastError());
 		exit(EXIT_FAILURE);
 	}
 	// listen()  : 소켓의 TCP 포트 상태를 LISTENING상태로 바꾼다. 이는 클라이언트 접속을 받아들일 수 있는 상태가 됨을 의미
 	// SOMAXCONN : 클라이언트의 접속 정보는 연결 큐에 저장되는데, backlog는 이 연결 큐의 길이를 나타냄.
 	//			 : SOMAXCONN의 의미는 하부 프로토콜에서 지원 가능한 최댓값을 사용
 
+	DisplayDebugText("Initialize Server Data Success!");
+	return;
+}
+
+void StopServer(void)
+{
+	for (auto client : gClientsList)
+		if (client.connect)
+			closesocket(client.sock);
+
+	closesocket(gServerSock);
+
+	if (WSACleanup() != 0) {
+		DisplayErrMsg("Error :: StopServer :: [ WSACleanup ] Fail !!", GetLastError());
+		exit(EXIT_FAILURE);
+	}
+	// WSACleanup() : 프로그램 종료 시 윈속 종료 함수
+	//				: 윈속 사용을 중지함을 운영체제에 알리고, 관련 리소르스를 반환.
+
+	return;
+}
+
+void AcceptThreadFunc(void)
+{
+	int ret_val = 0;
+	SOCKADDR_IN client_addr;
+	ZeroMemory(&client_addr, sizeof(SOCKADDR_IN));
+	client_addr.sin_family = AF_INET;
+	client_addr.sin_port = htons(MY_SERVER_PORT);
+	client_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+	int addr_size = sizeof(client_addr);
+	
 	while (true)
 	{
-		int new_id = -1; // 접속한 클라이언트의 새 ID, 먼저 사용하지 않는 -1로 초기화
-		struct sockaddr_in client_addr;
-		int addr_size = sizeof(client_addr);
-
-		SOCKET new_client_sock = WSAAccept(accept_sock, reinterpret_cast<SOCKADDR*>(&client_addr), &addr_size, NULL, NULL);
+		SOCKET new_client_sock = WSAAccept(gServerSock, reinterpret_cast<SOCKADDR*>(&client_addr), &addr_size, NULL, NULL);
 		if (INVALID_SOCKET == new_client_sock)
 		{
 			DisplayErrMsg("Error :: AcceptThreadFunc :: WSAAccept Fail !!", WSAGetLastError());
@@ -205,6 +212,7 @@ void AcceptThreadFunc(void)
 		// WSAAccept()	: 접속한 클라이언트와 통신할 수 있도록 새로운 소켓을 생성해서 리턴 또한 접속한 클라이언트의 주소정보도 알려줌
 		//				: 서버입장에서는 원격 IP주소와 원격 포트번호, 클라이언트 입장에서는 지역 IP주소와 지역 포트번호
 		
+		int new_id = -1; // 접속한 클라이언트의 새 ID, 먼저 사용하지 않는 -1로 초기화
 		// ADD::접속한 클라이언트의 새로운 ID를 부여하는 구간
 		for (auto i = 0; i < MAX_USER; ++i)
 		{
