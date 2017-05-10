@@ -33,7 +33,7 @@ void InitializeServerData(void);
 void StopServer(void);
 void AcceptThreadFunc(void);
 void WorkerThreadFunc(void);
-void ProcessPacket(const int, const unsigned char*);
+void ProcessPacket(const int, unsigned char*);
 void SendPacket(const int, const unsigned char*);
 
 int main(int argc, char *argv[])
@@ -371,6 +371,8 @@ void WorkerThreadFunc(void)
 				if (WSA_IO_PENDING != err_no)
 					DisplayErrMsg("Error :: WorkerThreadFunc :: WSARecv Fail !!", err_no);
 			}
+			std::string text = "Received Data From." + std::to_string(key_id);
+			DisplayDebugText(text);
 		}
 		else if (E_SEND == overlap->event_type)
 		{
@@ -395,11 +397,28 @@ void WorkerThreadFunc(void)
 	return;
 }
 
-void ProcessPacket(const int key_id, const unsigned char *packet)
+void ProcessPacket(const int key_id, unsigned char *packet)
 {
 	unsigned char packet_type = packet[1];
 	switch (packet_type)
 	{
+
+	case PacketType::CS_MOVE:
+	{
+		CS_MOVE_PACKET *received_data = reinterpret_cast<CS_MOVE_PACKET*>(packet);
+		std::string text = std::to_string(key_id) + " client send move packet : ";
+		switch (received_data->dir)
+		{
+		case Const::MoveDirection::None: text += "None";	break;
+		case Const::MoveDirection::Left: text += "Left";	break;
+		case Const::MoveDirection::Right:text += "Right";	break;
+		case Const::MoveDirection::Down: text += "Down";	break;
+		case Const::MoveDirection::Up:	 text += "Up";		break;
+		default : text += "None";	break;
+		}
+		DisplayDebugText(text);
+		break;
+	}
 	default:
 		DisplayDebugText("Unknown Packet Type Detected...");
 		return;
