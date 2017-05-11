@@ -2,14 +2,14 @@
 #include "DefaultInit.h"
 #include "../TermProj_Server/protocol.h"
 
-SOCKETINFO gSockInfo;
+NETWORKINFO gNetworkInfo;
 
 void InitializeNetworkData(void) 
 {
 	WSADATA wsadata;
 	WSAStartup(MAKEWORD(2, 2), &wsadata);
 
-	gSockInfo.mSock = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, 0);
+	gNetworkInfo.mSock = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, 0);
 
 	SOCKADDR_IN ServerAddr;
 	ZeroMemory(&ServerAddr, sizeof(SOCKADDR_IN));
@@ -17,15 +17,15 @@ void InitializeNetworkData(void)
 	ServerAddr.sin_port = htons(MY_SERVER_PORT);
 	ServerAddr.sin_addr.s_addr = inet_addr(LOOPBACK_ADDRESS);
 
-	int Result = WSAConnect(gSockInfo.mSock, (sockaddr *)&ServerAddr, sizeof(ServerAddr), NULL, NULL, NULL, NULL);
+	int Result = WSAConnect(gNetworkInfo.mSock, (sockaddr *)&ServerAddr, sizeof(ServerAddr), NULL, NULL, NULL, NULL);
 
-	WSAAsyncSelect(gSockInfo.mSock, gMainWindowHandle, WM_SOCKET, FD_CLOSE | FD_READ);
+	WSAAsyncSelect(gNetworkInfo.mSock, gMainWindowHandle, WM_SOCKET, FD_CLOSE | FD_READ);
 
-	gSockInfo.mSendWSABuf.buf = gSockInfo.mSendBuf;
-	gSockInfo.mSendWSABuf.len = BUF_SIZE;
-	gSockInfo.mRecvWSABuf.buf = gSockInfo.mRecvBuf;
-	gSockInfo.mRecvWSABuf.len = BUF_SIZE;
-
+	gNetworkInfo.mSendWSABuf.buf = gNetworkInfo.mSendBuf;
+	gNetworkInfo.mSendWSABuf.len = BUF_SIZE;
+	gNetworkInfo.mRecvWSABuf.buf = gNetworkInfo.mRecvBuf;
+	gNetworkInfo.mRecvWSABuf.len = BUF_SIZE;
+	gNetworkInfo.mID = -1;
 	return;
 }
 
@@ -33,24 +33,24 @@ void ReadPacket(SOCKET sock)
 {
 	DWORD iobyte, ioflag = 0;
 
-	int ret = WSARecv(sock, &gSockInfo.mRecvWSABuf, 1, &iobyte, &ioflag, NULL, NULL);
+	int ret = WSARecv(sock, &gNetworkInfo.mRecvWSABuf, 1, &iobyte, &ioflag, NULL, NULL);
 	if (ret) DisplayErrCode("Read Packet : ");
 
-	BYTE *ptr = reinterpret_cast<BYTE *>(gSockInfo.mRecvBuf);
+	BYTE *ptr = reinterpret_cast<BYTE *>(gNetworkInfo.mRecvBuf);
 	while (0 != iobyte)
 	{
-		if (0 == gSockInfo.mPacketSize) gSockInfo.mPacketSize = ptr[0];
-		if (iobyte + gSockInfo.mSavedPacketSize >= gSockInfo.mPacketSize) {
-			memcpy(gSockInfo.mPacketBuf + gSockInfo.mSavedPacketSize, ptr, gSockInfo.mPacketSize - gSockInfo.mSavedPacketSize);
-			ProcessPacket(gSockInfo.mPacketBuf);
-			ptr += gSockInfo.mPacketSize - gSockInfo.mSavedPacketSize;
-			iobyte -= gSockInfo.mPacketSize - gSockInfo.mSavedPacketSize;
-			gSockInfo.mPacketSize = 0;
-			gSockInfo.mSavedPacketSize = 0;
+		if (0 == gNetworkInfo.mPacketSize) gNetworkInfo.mPacketSize = ptr[0];
+		if (iobyte + gNetworkInfo.mSavedPacketSize >= gNetworkInfo.mPacketSize) {
+			memcpy(gNetworkInfo.mPacketBuf + gNetworkInfo.mSavedPacketSize, ptr, gNetworkInfo.mPacketSize - gNetworkInfo.mSavedPacketSize);
+			ProcessPacket(gNetworkInfo.mPacketBuf);
+			ptr += gNetworkInfo.mPacketSize - gNetworkInfo.mSavedPacketSize;
+			iobyte -= gNetworkInfo.mPacketSize - gNetworkInfo.mSavedPacketSize;
+			gNetworkInfo.mPacketSize = 0;
+			gNetworkInfo.mSavedPacketSize = 0;
 		}
 		else {
-			memcpy(gSockInfo.mPacketBuf + gSockInfo.mSavedPacketSize, ptr, iobyte);
-			gSockInfo.mSavedPacketSize += iobyte;
+			memcpy(gNetworkInfo.mPacketBuf + gNetworkInfo.mSavedPacketSize, ptr, iobyte);
+			gNetworkInfo.mSavedPacketSize += iobyte;
 			iobyte = 0;
 		}
 	}
@@ -117,9 +117,9 @@ void SendMovePacket(const WPARAM wParam)
 	DWORD io_byte;
 	
 	unsigned char* packet_ptr = reinterpret_cast<unsigned char*>(&packet);
-	gSockInfo.mSendWSABuf.len = packet_ptr[0];
-	memcpy(gSockInfo.mSendWSABuf.buf, packet_ptr, packet_ptr[0]);
-	int ret_val = WSASend(gSockInfo.mSock, &gSockInfo.mSendWSABuf, 1, &io_byte, 0, NULL, NULL);
+	gNetworkInfo.mSendWSABuf.len = packet_ptr[0];
+	memcpy(gNetworkInfo.mSendWSABuf.buf, packet_ptr, packet_ptr[0]);
+	int ret_val = WSASend(gNetworkInfo.mSock, &gNetworkInfo.mSendWSABuf, 1, &io_byte, 0, NULL, NULL);
 	if (ret_val)
 		DisplayErrCode("Error :: SendMovePacket Fail!!");
 	return;
@@ -129,6 +129,13 @@ void ProcessPacket(char* ptr)
 {
 	switch (ptr[1])
 	{
+	case PacketType::SC_LOGIN_OK:
+	  {
+		SC_LOGIN_OK_PACKET *received_data_ptr = reinterpret_cast<SC_LOGIN_OK_PACKET*>(ptr);
+		gNetworkInfo.mID = received_data_ptr->id;
+		gPlayer.SetBoardPos(received_data_ptr->x_pos, received_data_ptr->y_pos);
+		break;
+	  }
 	case PacketType::SC_ADD_OBJECT:
 	  {
 		SC_ADD_OBJECT_PACKET *received_data_ptr = reinterpret_cast<SC_ADD_OBJECT_PACKET*>(ptr);
@@ -139,8 +146,13 @@ void ProcessPacket(char* ptr)
 	case PacketType::SC_POSITION_INFO:
 	  {
 		SC_POSITION_INFO_PACKET *received_data_ptr = reinterpret_cast<SC_POSITION_INFO_PACKET*>(ptr);
-		gPlayer.SetBoardPos(received_data_ptr->x_pos, received_data_ptr->y_pos);
-		gDrawMgr.Move(received_data_ptr->dir);
+		if (received_data_ptr->id == gNetworkInfo.mID)
+		{
+			gPlayer.SetBoardPos(received_data_ptr->x_pos, received_data_ptr->y_pos);
+			gDrawMgr.Move(received_data_ptr->dir);
+		}
+		else
+			gOther[received_data_ptr->id].SetBoardPos(received_data_ptr->x_pos, received_data_ptr->y_pos);
 		break;
 	  }
 	default:

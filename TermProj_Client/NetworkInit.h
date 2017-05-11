@@ -1,8 +1,9 @@
 #pragma once
 #include "stdafx.h"
 
-struct SOCKETINFO
+struct NETWORKINFO
 {
+	int		mID;
 	SOCKET	mSock;
 	WSABUF	mSendWSABuf;
 	char	mSendBuf[BUF_SIZE];
@@ -20,6 +21,6 @@ void DisplayErrCodeAndQuit(char*);
 void ReadPacket(SOCKET);
 void ProcessPacket(char*);
 
-extern SOCKETINFO gSockInfo;
+extern NETWORKINFO gNetworkInfo;
 
 void SendMovePacket(const WPARAM wParam);
