@@ -35,6 +35,8 @@ void StopServer(void);
 void AcceptThreadFunc(void);
 void WorkerThreadFunc(void);
 
+void DisconnectClient(const int);
+
 void SendPacket(const int, const unsigned char*);
 void SendAddObjectPacket(const int, const int);
 void SendLoginOkPacket(const int);

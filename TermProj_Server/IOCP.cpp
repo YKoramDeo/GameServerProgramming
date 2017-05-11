@@ -265,17 +265,14 @@ void WorkerThreadFunc(void)
 		if (!result)
 		{
 			int err_no = WSAGetLastError();
-			if (64 == err_no) closesocket(gClientsList[key_id].sock);
+			if (64 == err_no) DisconnectClient(key_id);
 			else DisplayErrMsg("Error :: WorkerThreadFunc :: GetQueuedCompletionStatus Fail !!", WSAGetLastError());
 			continue;
 		}
 		if (0 == io_size)
 		{
-			closesocket(gClientsList[key_id].sock);
-
-			// ADD::각 플레이어에게 접속 종료 알림
-			// ...
-			gClientsList[key_id].connect = false;
+			// 각 플레이어에게 접속 종료 알림
+			DisconnectClient(key_id);
 			continue;
 		}
 		if (E_RECV == overlap->event_type)
@@ -345,6 +342,25 @@ void WorkerThreadFunc(void)
 			DisplayDebugText("WorkerThreadFunc :: Unknown GQCS Event Type!");
 			exit(EXIT_FAILURE);
 		}
+	}
+	return;
+}
+
+void DisconnectClient(const int key_id)
+{
+	closesocket(gClientsList[key_id].sock);
+	gClientsList[key_id].connect = false;
+
+	SC_REMOVE_OBJECT_PACKET packet;
+	packet.id = key_id;
+	packet.size = sizeof(packet);
+	packet.type = PacketType::SC_REMOVE_OBJECT;
+	
+	for (int i = 0; i < MAX_USER; ++i)
+	{
+		if (i == key_id) continue;;
+		if(gClientsList[i].connect)
+			SendPacket(i, reinterpret_cast<unsigned char *>(&packet));
 	}
 	return;
 }
