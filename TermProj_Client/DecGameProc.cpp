@@ -51,10 +51,10 @@ LRESULT CALLBACK DecGameProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lPa
 			for (int xColumn = gDrawMgr.GetBoardStartPos().x; xColumn < gDrawMgr.GetBoardStartPos().x + gDrawMgr.GetSightRange(); ++xColumn)
 				gBoard[yLine][xColumn].Draw(memdc);
 
-		gPlayer.Draw(memdc);
 		for (int i = 0; i < MAX_USER; ++i)
 			if(gOther[i].GetIsConnect())
 				gOther[i].Draw(memdc);
+		gPlayer.Draw(memdc);
 
 		/*
 		{

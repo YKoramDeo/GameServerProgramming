@@ -143,6 +143,12 @@ void ProcessPacket(char* ptr)
 		gOther[received_data_ptr->id].SetBoardPos(received_data_ptr->x_pos, received_data_ptr->y_pos);
 		break;
 	  }
+	case PacketType::SC_REMOVE_OBJECT:
+	{
+		SC_REMOVE_OBJECT_PACKET *received_data_ptr = reinterpret_cast<SC_REMOVE_OBJECT_PACKET*>(ptr);
+		gOther[received_data_ptr->id].SetConnect(false);
+		break;
+	}
 	case PacketType::SC_POSITION_INFO:
 	  {
 		SC_POSITION_INFO_PACKET *received_data_ptr = reinterpret_cast<SC_POSITION_INFO_PACKET*>(ptr);
