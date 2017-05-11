@@ -3,6 +3,7 @@
 
 CBoard gBoard[BOARD_LINE][BOARD_COLUMN];
 CPlayer gPlayer;
+CPlayer gOther[MAX_USER];
 CDrawManager gDrawMgr;
 SCENE gScene = SCENE::GAME;
 
@@ -75,6 +76,17 @@ void CPlayer::SetBoardPos(const int&x, const int& y)
 {
 	this->mBoardPos.x = x;
 	this->mBoardPos.y = y;
+	return;
+}
+
+void CPlayer::SetRGB(const int& red, const int& green, const int& blue)
+{
+	this->mRGB.SetRGB(red, green, blue);
+	return;
+}
+void CPlayer::SetConnect(const bool& boolean)
+{
+	this->mConnect = boolean;
 	return;
 }
 

@@ -52,6 +52,9 @@ LRESULT CALLBACK DecGameProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lPa
 				gBoard[yLine][xColumn].Draw(memdc);
 
 		gPlayer.Draw(memdc);
+		for (int i = 0; i < MAX_USER; ++i)
+			if(gOther[i].GetIsConnect())
+				gOther[i].Draw(memdc);
 
 		/*
 		{
@@ -112,6 +115,13 @@ void InitializeClient(void)
 		}
 	}
 
+	for (int i = 0; i < MAX_USER; ++i)
+	{
+		gOther[i].SetConnect(false);
+		gOther[i].SetRGB(0, 200, 0);
+		gOther[i].SetWindowPos(gBoard[gOther[i].GetBoardPos().y][gOther[i].GetBoardPos().x].GetWindowPos());
+	}
+
 	gPlayer.SetWindowPos(gBoard[gPlayer.GetBoardPos().y][gPlayer.GetBoardPos().x].GetWindowPos());
 	gDrawMgr.SetBoardStartPos(0, 0);
 	return;
@@ -134,5 +144,8 @@ void ResetBoardSetting(void)
 	}
 
 	gPlayer.SetWindowPos(gBoard[gPlayer.GetBoardPos().y][gPlayer.GetBoardPos().x].GetWindowPos());
+	for (int i = 0; i < MAX_USER; ++i)
+		if(gOther[i].GetIsConnect())
+			gOther[i].SetWindowPos(gBoard[gOther[i].GetBoardPos().y][gOther[i].GetBoardPos().x].GetWindowPos());
 	return;
 }

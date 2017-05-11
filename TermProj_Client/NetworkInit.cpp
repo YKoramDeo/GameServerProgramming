@@ -129,13 +129,20 @@ void ProcessPacket(char* ptr)
 {
 	switch (ptr[1])
 	{
+	case PacketType::SC_ADD_OBJECT:
+	  {
+		SC_ADD_OBJECT_PACKET *received_data_ptr = reinterpret_cast<SC_ADD_OBJECT_PACKET*>(ptr);
+		gOther[received_data_ptr->id].SetConnect(true);
+		gOther[received_data_ptr->id].SetBoardPos(received_data_ptr->x_pos, received_data_ptr->y_pos);
+		break;
+	  }
 	case PacketType::SC_POSITION_INFO:
-	{
+	  {
 		SC_POSITION_INFO_PACKET *received_data_ptr = reinterpret_cast<SC_POSITION_INFO_PACKET*>(ptr);
 		gPlayer.SetBoardPos(received_data_ptr->x_pos, received_data_ptr->y_pos);
 		gDrawMgr.Move(received_data_ptr->dir);
 		break;
-	}
+	  }
 	default:
 		DisplayErrCode("Unknown PACKET type \n");
 		break;

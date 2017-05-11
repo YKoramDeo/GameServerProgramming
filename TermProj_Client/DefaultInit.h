@@ -67,6 +67,7 @@ class CPlayer : public rmsdyddl::Object
 public:
 	CPlayer() : mBoardPos{ 0, 0 }
 	{
+		this->mConnect = true;
 		this->SetWindowPos(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
 		this->SetRadius(30);
 		this->SetBoundary();
@@ -75,15 +76,19 @@ public:
 
 	void SetBoardPos(const POINT&);
 	void SetBoardPos(const int&, const int&);
+	void SetRGB(const int&, const int&, const int&);
+	void SetConnect(const bool&);
 
 	rmsdyddl::RGB GetRGB(void) const { return this->mRGB; }
 	POINT GetBoardPos(void) const { return this->mBoardPos; }
+	BOOL GetIsConnect(void) const { return this->mConnect; }
 
 	void Move(const WPARAM&);
 	void Draw(const HDC&);
 private:
 	rmsdyddl::RGB mRGB;
 	POINT mBoardPos;
+	BOOL mConnect;
 };
 
 class CDrawManager
@@ -112,5 +117,6 @@ enum SCENE
 
 extern CBoard gBoard[BOARD_LINE][BOARD_COLUMN];
 extern CPlayer gPlayer;
+extern CPlayer gOther[MAX_USER];
 extern CDrawManager gDrawMgr;
 extern SCENE gScene;
