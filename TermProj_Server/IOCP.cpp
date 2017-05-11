@@ -240,8 +240,10 @@ void AcceptThreadFunc(void)
 		//ADD::추가 작업 더 필요함
 		for (int i = 0; i < MAX_USER; ++i) {
 			if (i == new_id) continue;
-			if (gClientsList[i].connect)
+			if (gClientsList[i].connect) {
 				SendAddObjectPacket(i, new_id);
+				SendAddObjectPacket(new_id, i);
+			}
 		}
 		DisplayDebugText("AcceptThreadFunc :: Accept Success :)");
 	}
