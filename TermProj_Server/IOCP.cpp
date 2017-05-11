@@ -203,6 +203,8 @@ void AcceptThreadFunc(void)
 		ZeroMemory(gClientsList[new_id].packet_buf, MAX_BUFF_SIZE);
 		gClientsList[new_id].curr_packet_size = 0;
 		gClientsList[new_id].prev_packet_size = 0;
+		
+		SendLoginOkPacket(new_id);
 
 		// ADD::楷搬等 货肺款 家南 Recv荐青.
 		DWORD recv_flag = 0;
@@ -378,5 +380,17 @@ void SendAddObjectPacket(const int target_client, const int new_client)
 	std::string text = "Send Add " + std::to_string(new_client) + " Object Packet to." + std::to_string(target_client);
 	DisplayDebugText(text);
 	SendPacket(target_client, reinterpret_cast<unsigned char *>(&packet));
+	return;
+}
+
+void SendLoginOkPacket(const int new_client)
+{
+	SC_LOGIN_OK_PACKET packet;
+	packet.id = new_client;
+	packet.size = sizeof(packet);
+	packet.type = PacketType::SC_LOGIN_OK;
+	packet.x_pos = gClientsList[new_client].player.pos.x;
+	packet.y_pos = gClientsList[new_client].player.pos.y;
+	SendPacket(new_client, reinterpret_cast<unsigned char *>(&packet));
 	return;
 }

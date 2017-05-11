@@ -67,7 +67,10 @@ void ProcessReceivePacket::CS_MOVE_PACKET(int key_id, BYTE dir)
 	packet.x_pos = x;
 	packet.y_pos = y;
 
-	SendPacket(key_id, reinterpret_cast<UCHAR*>(&packet));
+	for (int i = 0; i < MAX_USER; ++i)
+		if(gClientsList[i].connect)
+			SendPacket(i, reinterpret_cast<UCHAR*>(&packet));
+
 	gClientsList[key_id].player.pos.x = x;
 	gClientsList[key_id].player.pos.y = y;
 
