@@ -80,9 +80,9 @@ struct SC_LOGIN_OK_PACKET : public Packet
 	WORD id;
 	WORD x_pos;
 	WORD y_pos;
-	WORD hp;
-	WORD level;
-	DWORD exp;
+	// WORD hp;
+	// WORD level;
+	// DWORD exp;
 };
 
 struct SC_LOGIN_FAIL_PACKET : public Packet { };
@@ -115,7 +115,8 @@ struct SC_REMOVE_OBJECT_PACKET : public Packet
 struct SC_ADD_OBJECT_PACKET : public Packet
 {
 	WORD id;
-	BYTE type;
+	WORD x_pos;
+	WORD y_pos;
 };
 
 #pragma pack(pop)

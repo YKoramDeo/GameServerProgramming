@@ -236,6 +236,13 @@ void AcceptThreadFunc(void)
 		//		마지막 변수인 hEvent는 이벤트 객체의 핸들 값으로 Overlapped모델(1)에서만 사용한다. 
 		//		입출력 작업이 완료되면 hEvent가 가리키는 이벤트 객체는 신호 상태가 된다.
 		// 6. LPWSAOVERLAPPED_COMPLETION_ROUTINE lpCompletionRoutine : 입출력 작업이 완료되면 운영체제가 자동으로 호출할 완료 루틴(콜백 함수)의 주소 값.
+
+		//ADD::추가 작업 더 필요함
+		for (int i = 0; i < MAX_USER; ++i) {
+			if (i == new_id) continue;
+			if (gClientsList[i].connect)
+				SendAddObjectPacket(i, new_id);
+		}
 		DisplayDebugText("AcceptThreadFunc :: Accept Success :)");
 	}
 	return;
@@ -355,5 +362,19 @@ void SendPacket(const int key_id, const unsigned char* packet)
 		if (WSA_IO_PENDING != err_no)
 			DisplayErrMsg("Error :: SendPacket :: WSASend Fail !!", err_no);
 	}
+	return;
+}
+
+void SendAddObjectPacket(const int target_client, const int new_client)
+{
+	SC_ADD_OBJECT_PACKET packet;
+	packet.id = new_client;
+	packet.size = sizeof(packet);
+	packet.type = PacketType::SC_ADD_OBJECT;
+	packet.x_pos = gClientsList[new_client].player.pos.x;
+	packet.y_pos = gClientsList[new_client].player.pos.y;
+	std::string text = "Send Add " + std::to_string(new_client) + " Object Packet to." + std::to_string(target_client);
+	DisplayDebugText(text);
+	SendPacket(target_client, reinterpret_cast<unsigned char *>(&packet));
 	return;
 }

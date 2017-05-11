@@ -36,3 +36,4 @@ void AcceptThreadFunc(void);
 void WorkerThreadFunc(void);
 
 void SendPacket(const int, const unsigned char*);
+void SendAddObjectPacket(const int, const int);
